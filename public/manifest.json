@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Job Scheduling Manager",
+  "version": "1.0.0",
+  "description": "Track your applied jobs directly from job portals.",
+  "permissions": ["scripting", "tabs", "activeTab", "storage"],
+  "action": {
+    "default_popup": "index.html"
+  },
+  "host_permissions": ["<all_urls>"]
+}

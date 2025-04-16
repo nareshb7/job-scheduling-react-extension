@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "jsx": "react-jsx", // for React 17+, use "react" for older
+    "moduleResolution": "node",
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "noEmit": false,
+    "isolatedModules": true,
+    "baseUrl": "./src",
+    "paths": {
+      "pages/*": ["pages/*"],
+      "routes/*": ["routes/*"]
+      // Add more aliases as needed
+    }
+  },
+  "include": ["src"]
+}
