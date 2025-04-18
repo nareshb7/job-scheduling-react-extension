@@ -11,44 +11,38 @@ import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-run
 import { useEffect, useState } from "react";
 import "./App.css";
 function App() {
-    const [formData, setFormData] = useState({
-        portal: "",
-        title: "",
-        company: "",
-        location: "",
-        description: "",
-        url: "",
-    });
+    const [formData, setFormData] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [apiMessage, setAPIMessage] = useState("");
     // ✅ This runs on popup load
     useEffect(() => {
         chrome.storage.local.get("userId", (data) => {
-            console.log("data::::", data);
             if (!data.userId) {
                 window.location.href = "unauthorized.html";
                 return;
             }
+            const checkAuth = () => __awaiter(this, void 0, void 0, function* () {
+                const userId = data.userId; // Replace this later with localStorage or real login
+                const BASE_URL = "http://localhost:3001/api";
+                try {
+                    const response = yield fetch(`${BASE_URL}/user/${userId}`);
+                    if (!response.ok) {
+                        // 🔴 Redirect to unauthorized.html if not authenticated
+                        window.location.href = "unauthorized.html";
+                        return;
+                    }
+                    const data = yield response.json();
+                    console.log("✅ Authenticated user:", data);
+                }
+                catch (error) {
+                    console.error("Auth check failed:", error);
+                    window.location.href = "unauthorized.html";
+                }
+            });
+            checkAuth();
             // ✅ now you can use data.userId
             console.log("✅ userId from chrome.storage", data.userId);
         });
-        const checkAuth = () => __awaiter(this, void 0, void 0, function* () {
-            const userId = "67fe21d2cec60a9927dd8bad"; // Replace this later with localStorage or real login
-            const BASE_URL = "http://localhost:3001/api";
-            try {
-                const response = yield fetch(`${BASE_URL}/user/${userId}`);
-                if (!response.ok) {
-                    // 🔴 Redirect to unauthorized.html if not authenticated
-                    window.location.href = "unauthorized.html";
-                    return;
-                }
-                const data = yield response.json();
-                console.log("✅ Authenticated user:", data);
-            }
-            catch (error) {
-                console.error("Auth check failed:", error);
-                window.location.href = "unauthorized.html";
-            }
-        });
-        checkAuth();
     }, []);
     const handleClick = () => __awaiter(this, void 0, void 0, function* () {
         const [tab] = yield chrome.tabs.query({
@@ -61,43 +55,13 @@ function App() {
                 const host = window.location.host;
                 const getElement = (selector) => document.querySelector(selector);
                 const linkedinFunction = () => {
-                    var _a, _b, _c, _d;
+                    var _a, _b, _c, _d, _e;
                     try {
                         const companyName = (_a = getElement(".job-details-jobs-unified-top-card__company-name")) === null || _a === void 0 ? void 0 : _a.innerText;
                         const position = (_b = getElement(".job-details-jobs-unified-top-card__job-title")) === null || _b === void 0 ? void 0 : _b.innerText;
                         const jobDescription = (_c = document.getElementById("job-details")) === null || _c === void 0 ? void 0 : _c.innerText;
                         const location = (_d = getElement(".job-details-jobs-unified-top-card__tertiary-description-container")) === null || _d === void 0 ? void 0 : _d.innerText;
-                        const data = chrome.storage.local.get("userId", (data) => {
-                            console.log("data::::", data);
-                            if (!data.userId) {
-                                window.location.href = "unauthorized.html";
-                                return;
-                            }
-                            if (data.userId) {
-                                fetch(`http://localhost:3001/api/portal/add`, {
-                                    method: "POST",
-                                    headers: {
-                                        "Content-type": "application/json",
-                                    },
-                                    body: JSON.stringify({
-                                        portal: "LinkedIn",
-                                        title: position,
-                                        company: companyName,
-                                        location,
-                                        description: jobDescription,
-                                        url: window.location.href,
-                                        userId: data.userId,
-                                    }),
-                                })
-                                    .then((res) => res.json())
-                                    .then((dt) => console.log("portal_updated:::", dt))
-                                    .catch((er) => console.error("portal_add_error", er.message));
-                            }
-                            // ✅ now you can use data.userId
-                            console.log("✅ userId from chrome.storage", data.userId);
-                            return data;
-                        });
-                        console.log("dataL::::::id", data);
+                        const hirer = (_e = getElement(".jobs-poster__name")) === null || _e === void 0 ? void 0 : _e.innerText;
                         return {
                             portal: "LinkedIn",
                             title: position,
@@ -105,6 +69,7 @@ function App() {
                             location,
                             description: jobDescription,
                             url: window.location.href,
+                            hirer,
                         };
                     }
                     catch (err) {
@@ -153,6 +118,59 @@ function App() {
             setFormData(result);
         }
     });
-    return (_jsxs(_Fragment, { children: [_jsxs("div", { children: [_jsxs("div", { children: [_jsx("label", { children: "Company:" }), _jsx("input", { value: formData.company, readOnly: true })] }), _jsxs("div", { children: [_jsx("label", { children: "Role Title:" }), _jsx("input", { value: formData.title, readOnly: true })] }), _jsxs("div", { children: [_jsx("label", { children: "Location:" }), _jsx("input", { value: formData.location, readOnly: true })] }), _jsxs("div", { children: [_jsx("label", { children: "Portal:" }), _jsx("input", { value: formData.portal, readOnly: true })] }), _jsxs("div", { children: [_jsx("label", { children: "Description:" }), _jsx("textarea", { value: formData.description, readOnly: true })] })] }), _jsx("button", { onClick: handleClick, children: "Track this job" })] }));
+    const hanldeSubmit = () => __awaiter(this, void 0, void 0, function* () {
+        var message = "";
+        setIsLoading(true);
+        const [tab] = yield chrome.tabs.query({
+            active: true,
+            currentWindow: true,
+        });
+        yield chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            args: [formData, message],
+            func: (formData, message) => {
+                chrome.storage.local.get("userId", (data) => {
+                    if (!data.userId) {
+                        window.location.href = "unauthorized.html";
+                        return;
+                    }
+                    if (data.userId) {
+                        fetch(`http://localhost:3001/api/portal/add`, {
+                            method: "POST",
+                            headers: {
+                                "Content-type": "application/json",
+                            },
+                            body: JSON.stringify(Object.assign(Object.assign({}, formData), { url: window.location.href, userId: data.userId })),
+                        })
+                            .then((res) => res.json())
+                            .then((dt) => {
+                            message = "Success";
+                            console.log("portal_updated:::", dt);
+                            return dt;
+                        })
+                            .catch((er) => {
+                            console.error("portal_add_error", er.message);
+                            message = er.message;
+                            return er.message;
+                        });
+                    }
+                    return data;
+                });
+            },
+        });
+        setTimeout(() => {
+            setIsLoading(false);
+            setFormData(null);
+            setAPIMessage(message || "Success");
+            setTimeout(() => {
+                setAPIMessage("");
+            }, 2000);
+        }, 2000);
+    });
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => prev && Object.assign(Object.assign({}, prev), { [name]: value }));
+    };
+    return (_jsx(_Fragment, { children: _jsxs("div", { children: [_jsx("button", { onClick: handleClick, children: "Track this job" }), apiMessage && _jsxs("h4", { children: ["Message: ", apiMessage] }), formData && (_jsxs(_Fragment, { children: [_jsxs("div", { children: [_jsx("label", { children: "Company:" }), _jsx("input", { name: "company", value: formData.company, onChange: handleChange })] }), _jsxs("div", { children: [_jsx("label", { children: "Role Title:" }), _jsx("input", { name: "title", value: formData.title, onChange: handleChange })] }), _jsxs("div", { children: [_jsx("label", { children: "Location:" }), _jsx("input", { name: "location", value: formData.location, onChange: handleChange })] }), _jsxs("div", { children: [_jsx("label", { children: "Portal:" }), _jsx("input", { name: "portal", value: formData.portal, onChange: handleChange })] }), _jsxs("div", { children: [_jsx("label", { children: "Description:" }), _jsx("textarea", { name: "description", rows: 4, value: formData.description, onChange: handleChange })] }), _jsx("div", { children: _jsx("button", { disabled: isLoading, onClick: hanldeSubmit, children: isLoading ? "Submitting..." : "Submit" }) })] }))] }) }));
 }
 export default App;
